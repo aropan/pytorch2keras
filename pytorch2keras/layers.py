@@ -1,17 +1,10 @@
-import keras.layers
-import numpy as np
-import random
-import string
-import tensorflow as tf
-
-
 from .convolution_layers import convert_conv, convert_convtranspose
 from .reshape_layers import convert_flatten, convert_transpose, convert_reshape, \
     convert_squeeze, convert_unsqueeze, convert_shape
 from .elementwise_layers import convert_elementwise_add, convert_elementwise_mul, \
     convert_elementwise_div, convert_elementwise_sub
 from .activation_layers import convert_relu, convert_lrelu, convert_selu, \
-    convert_softmax, convert_sigmoid, convert_tanh, convert_hardtanh
+    convert_softmax, convert_sigmoid, convert_tanh, convert_hardtanh, convert_prelu
 from .pooling_layers import convert_avgpool, convert_maxpool, convert_maxpool3, \
     convert_adaptive_avg_pool2d, convert_adaptive_max_pool2d
 from .normalization_layers import convert_batchnorm, convert_instancenorm, convert_dropout
@@ -20,7 +13,7 @@ from .embedding_layers import convert_gather
 from .upsampling_layers import convert_upsample_bilinear, convert_upsample
 from .padding_layers import convert_padding
 from .operation_layers import convert_concat, convert_slice, convert_sum, \
-    convert_reduce_sum, convert_slice, convert_clip
+    convert_reduce_sum, convert_clip
 from .constant_layers import convert_constant
 
 
@@ -46,6 +39,7 @@ AVAILABLE_CONVERTERS = {
     'onnx::Sum': convert_sum,
     'onnx::Concat': convert_concat,
     'onnx::Relu': convert_relu,
+    'onnx::PRelu': convert_prelu,
     'onnx::LeakyRelu': convert_lrelu,
     'onnx::Sigmoid': convert_sigmoid,
     'onnx::Softmax': convert_softmax,

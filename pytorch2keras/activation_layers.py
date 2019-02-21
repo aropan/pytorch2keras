@@ -1,7 +1,6 @@
-import keras.layers
 import numpy as np
+import keras.layers
 import random
-import string
 import tensorflow as tf
 from .common import random_string
 
@@ -30,6 +29,36 @@ def convert_relu(params, w_name, scope_name, inputs, layers, weights, names):
 
     relu = keras.layers.Activation('relu', name=tf_name)
     layers[scope_name] = relu(layers[inputs[0]])
+
+
+def convert_prelu(params, w_name, scope_name, inputs, layers, weights, names):
+    """
+    Convert prelu layer.
+
+   Args:
+        params: dictionary with layer parameters
+        w_name: name prefix in state_dict
+        scope_name: pytorch scope name
+        inputs: pytorch node inputs
+        layers: dictionary with keras tensors
+        weights: pytorch state_dict
+        names: use short names for keras layers
+    """
+    print('Converting prelu...')
+
+    if names == 'short':
+        tf_name = 'PRELU' + random_string(3)
+    elif names == 'keep':
+        tf_name = w_name
+    else:
+        tf_name = w_name + str(random.random())
+
+    weights_name = '{0}.weight'.format(w_name)
+    alpha = weights[weights_name].numpy()
+
+    prelu = keras.layers.PReLU(shared_axes=[2, 3], name=tf_name)
+    layers[scope_name] = prelu(layers[inputs[0]])
+    prelu.set_weights(alpha.reshape(1, -1, 1, 1))
 
 
 def convert_lrelu(params, w_name, scope_name, inputs, layers, weights, names):
@@ -99,13 +128,6 @@ def convert_softmax(params, w_name, scope_name, inputs, layers, weights, names):
         names: use short names for keras layers
     """
     print('Converting softmax ...')
-
-    if names == 'short':
-        tf_name = 'SMAX' + random_string(4)
-    elif names == 'keep':
-        tf_name = w_name
-    else:
-        tf_name = w_name + str(random.random())
 
     def target_layer(x, dim=params['dim']):
         import keras

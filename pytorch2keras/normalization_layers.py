@@ -33,12 +33,8 @@ def convert_batchnorm(params, w_name, scope_name, inputs, layers, weights, names
     mean_name = '{0}.running_mean'.format(w_name)
     var_name = '{0}.running_var'.format(w_name)
 
-    if bias_name in weights:
-        beta = weights[bias_name].numpy()
-
-    if weights_name in weights:
-        gamma = weights[weights_name].numpy()
-
+    beta = weights[bias_name].numpy()
+    gamma = weights[weights_name].numpy()
     mean = weights[mean_name].numpy()
     variance = weights[var_name].numpy()
 
