@@ -260,7 +260,7 @@ def pytorch_to_keras(
         ).output
         keras_inputs.append(layers[graph_inputs[i]])
 
-    outputs = []
+    outputs = [None] * len(graph_outputs)
     group_indices = defaultdict(lambda: 0, {})
 
     for node in nodes:
@@ -307,7 +307,6 @@ def pytorch_to_keras(
             print('name in state_dict:', node_weights_name)
             print('attrs:', node_attrs)
             print('is_terminal:', node_id in graph_outputs)
-        node_attrs['channels_first_'] = True
         AVAILABLE_CONVERTERS[node_type](
             node_attrs,
             node_weights_name, node_id,
@@ -316,7 +315,7 @@ def pytorch_to_keras(
             names
         )
         if node_id in graph_outputs:
-            outputs.append(layers[node_id])
+            outputs[graph_outputs.index(node_id)] = layers[node_id]
 
     model = keras.models.Model(inputs=keras_inputs, outputs=outputs)
 
