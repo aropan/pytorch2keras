@@ -221,9 +221,9 @@ def convert_adaptive_avg_pool2d(params, w_name, scope_name, inputs, layers, weig
     global_pool = keras.layers.GlobalAveragePooling2D(data_format='channels_first', name=tf_name)
     layers[scope_name] = global_pool(layers[inputs[0]])
 
-    def target_layer(x):
+    def target_layer(x, data_format='channels_first'):
         import keras
-        return keras.backend.expand_dims(x)
+        return keras.backend.expand_dims(x, axis=-1 if data_format == 'channels_first' else 1)
 
     lambda_layer = keras.layers.Lambda(target_layer, name=tf_name + 'E')
     layers[scope_name] = lambda_layer(layers[scope_name])  # double expand dims
