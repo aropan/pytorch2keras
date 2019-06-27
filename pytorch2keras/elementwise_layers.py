@@ -34,6 +34,8 @@ def convert_elementwise_add(
             tf_name = w_name + str(random.random())
 
         def target_layer(x):
+            import tensorflow as tf
+
             layer = tf.add(x[0], x[1])
             return layer
 
@@ -81,6 +83,8 @@ def convert_elementwise_mul(
         tf_name = w_name + str(random.random())
 
     def target_layer(x):
+        import tensorflow as tf
+
         layer = tf.multiply(
             x[0],
             x[1]
@@ -116,6 +120,8 @@ def convert_elementwise_div(
         tf_name = w_name + str(random.random())
 
     def target_layer(x):
+        import tensorflow as tf
+
         layer = tf.div(
             x[0],
             x[1]
