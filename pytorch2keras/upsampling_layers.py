@@ -28,14 +28,16 @@ def convert_upsample_bilinear(params, w_name, scope_name, inputs, layers, weight
     else:
         tf_name = w_name + str(random.random())
 
-    output_size = params['output_size']
-    align_corners = params['align_corners'] > 0
+    output_size = params.get('output_size', layers.get(inputs[1] + '_np'))
+    align_corners = params.get('align_corners', 1) > 0
 
-    def target_layer(x, size=output_size, align_corners=align_corners):
+    def target_layer(x, size=output_size, align_corners=align_corners, data_format='channels_first'):
         import tensorflow as tf
-        x = tf.transpose(x, [0, 2, 3, 1])
+        if data_format == 'channels_first':
+            x = tf.transpose(x, [0, 2, 3, 1])
         x = tf.image.resize_images(x, size, align_corners=align_corners)
-        x = tf.transpose(x, [0, 3, 1, 2])
+        if data_format == 'channels_first':
+            x = tf.transpose(x, [0, 3, 1, 2])
         return x
 
     lambda_layer = keras.layers.Lambda(target_layer)
@@ -67,8 +69,9 @@ def convert_upsample(params, w_name, scope_name, inputs, layers, weights, names)
     else:
         tf_name = w_name + str(random.random())
 
-    scale = (params['height_scale'], params['width_scale'])
-    upsampling = keras.layers.UpSampling2D(
-        size=scale, name=tf_name
-    )
+    if 'height_scale' in params and 'width_scale' in params:
+        scale = (params['height_scale'], params['width_scale'])
+    else:
+        scale = layers[inputs[1] + '_np'][-2:]
+    upsampling = keras.layers.UpSampling2D(size=scale, name=tf_name, interpolation='nearest')
     layers[scope_name] = upsampling(layers[inputs[0]])

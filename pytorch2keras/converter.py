@@ -12,10 +12,10 @@ import torch.autograd
 import torch.serialization
 from torch.jit import _unique_state_dict
 
+from .layers import AVAILABLE_CONVERTERS
+
 if version.parse('0.4.1') <= version.parse(torch.__version__):
     from torch.onnx import OperatorExportTypes
-
-from .layers import AVAILABLE_CONVERTERS
 
 
 @contextlib.contextmanager
@@ -146,6 +146,8 @@ def get_leaf_id(node, state={}):
 def pytorch_to_keras(
     model, args, input_shapes,
     change_ordering=False, training=False, verbose=False, names=False,
+    skip_layers_in_renumerating=(),
+    skip_reordering_channel_func=None,
 ):
     """
     By given pytorch model convert layers with specified convertors.
@@ -258,7 +260,7 @@ def pytorch_to_keras(
         ).output
         keras_inputs.append(layers[graph_inputs[i]])
 
-    outputs = []
+    outputs = [None] * len(graph_outputs)
     group_indices = defaultdict(lambda: 0, {})
 
     for node in nodes:
@@ -274,18 +276,16 @@ def pytorch_to_keras(
         node_id = get_node_id(node)
         node_name_regex = re.findall(r'\[([\w\d.\-\[\]\s]+)\]', node_scope_name)
 
-        try: 
+        try:
             int(node_name_regex[-1])
             node_weigth_group_name = '.'.join(
                 node_name_regex[:-1]
             )
             node_weights_name = node_weigth_group_name + '.' + str(group_indices[node_weigth_group_name])
-            group_indices[node_weigth_group_name] += 1
-
+            if node_type not in skip_layers_in_renumerating:
+                group_indices[node_weigth_group_name] += 1
         except ValueError:
-            node_weights_name = '.'.join(
-                node_name_regex
-            )
+            node_weights_name = '.'.join(node_name_regex)
         except IndexError:
             node_weights_name = '.'.join(node_input_names)
 
@@ -315,7 +315,7 @@ def pytorch_to_keras(
             names
         )
         if node_id in graph_outputs:
-            outputs.append(layers[node_id])
+            outputs[graph_outputs.index(node_id)] = layers[node_id]
 
     model = keras.models.Model(inputs=keras_inputs, outputs=outputs)
 
@@ -324,6 +324,8 @@ def pytorch_to_keras(
         conf = model.get_config()
 
         for layer in conf['layers']:
+            if skip_reordering_channel_func is not None and skip_reordering_channel_func(layer):
+                continue
             if layer['config'] and 'batch_input_shape' in layer['config']:
                 layer['config']['batch_input_shape'] = \
                     tuple(np.reshape(np.array(
@@ -345,8 +347,19 @@ def pytorch_to_keras(
 
             if layer['config'] and 'data_format' in layer['config']:
                 layer['config']['data_format'] = 'channels_last'
-            if layer['config'] and 'axis' in layer['config']:
+            if layer['config'] and 'axis' in layer['config'] and layer['config']['axis'] != -1:
                 layer['config']['axis'] = 3
+            if layer['class_name'] == 'Lambda':
+                function = layer['config']['function']
+                if isinstance(function[1], tuple):
+                    params = []
+                    for param in function[1]:
+                        if param == 'channels_first':
+                            param = 'channels_last'
+                        elif isinstance(param, np.ndarray) and param.shape == (4, ):
+                            param[1], param[3] = param[3], param[1]
+                        params.append(param)
+                    layer['config']['function'] = (function[0], params) + function[2:]
 
         K.set_image_data_format('channels_last')
         model_tf_ordering = keras.models.Model.from_config(conf)

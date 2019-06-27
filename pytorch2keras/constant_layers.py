@@ -23,9 +23,5 @@ def convert_constant(params, w_name, scope_name, inputs, layers, weights, names)
 
     params_list = params['value'].numpy()
 
-    def target_layer(x, value=params_list):
-        return tf.constant(value.tolist(), shape=value.shape)
-
-    lambda_layer = keras.layers.Lambda(target_layer)
     layers[scope_name + '_np'] = params_list  # ad-hoc
-    layers[scope_name] = lambda_layer(layers['input0'])  # Temporary fix for nonexistent input name created by converter.py
+    layers[scope_name] = params_list  # ad-hoc
