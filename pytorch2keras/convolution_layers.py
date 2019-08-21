@@ -98,16 +98,13 @@ def convert_conv(params, w_name, scope_name, inputs, layers, weights, names):
                 biases = None
                 has_bias = False
 
-            # We are just doing depthwise conv, so make the pointwise a no-op
-            pointwise_wt = np.expand_dims(np.expand_dims(np.identity(out_channels), 0), 0)
             W = W.transpose(0, 1, 3, 2)
             if has_bias:
-                weights = [W, pointwise_wt, biases]
+                weights = [W, biases]
             else:
-                weights = [W, pointwise_wt]
+                weights = [W]
 
-            conv = keras.layers.SeparableConv2D(
-                filters=out_channels,
+            conv = keras.layers.DepthwiseConv2D(
                 depth_multiplier=1,
                 kernel_size=(height, width),
                 strides=(params['strides'][0], params['strides'][1]),
